@@ -23,7 +23,6 @@
             startup: { typeset: false } 
         };
     </script>
-    <!-- Gói MathJax hỗ trợ xuất MathML cho MS Word -->
     <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
 
     <style>
@@ -39,7 +38,7 @@
             background: white;
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
             margin: 0 auto;
-            padding: 12.7mm; /* Lề hẹp (Narrow margin) ~ 0.5 inch tiết kiệm giấy */
+            padding: 12.7mm; 
             box-sizing: border-box;
             position: relative;
         }
@@ -225,7 +224,6 @@
     <div id="prompt-modal" class="fixed inset-0 bg-black/60 hidden flex items-center justify-center z-50 backdrop-blur-sm">
         <div class="bg-white rounded-2xl w-full max-w-2xl shadow-2xl flex flex-col overflow-hidden animate-fade-in-up m-4 relative">
             
-            <!-- OVERLAY ĐANG TẢI (LOADING AI) -->
             <div id="ai-loading-overlay" class="absolute inset-0 bg-white/90 hidden flex-col items-center justify-center z-10">
                 <i class="fas fa-spinner fa-spin text-5xl text-blue-600 mb-4"></i>
                 <p class="text-blue-800 font-bold text-lg">AI đang soạn chuyên đề Toán...</p>
@@ -359,7 +357,6 @@ Lưu ý: Bạn chỉ được in ra văn bản chuyên đề. Không bao gồm c
             }
         }
 
-        // HÀM GỌI API GEMINI TRỰC TIẾP
         async function generateWithAI() {
             if (!generatePromptText()) return; 
 
@@ -369,7 +366,7 @@ Lưu ý: Bạn chỉ được in ra văn bản chuyên đề. Không bao gồm c
             overlay.classList.add('flex');
 
             try {
-                const apiKey = ""; // API Key do môi trường runtime cung cấp
+                const apiKey = ""; // Thay API Key của bạn vào đây
                 const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
                 
                 const payload = {
@@ -443,7 +440,7 @@ Lưu ý: Bạn chỉ được in ra văn bản chuyên đề. Không bao gồm c
 
             themeSelect.addEventListener('change', (e) => {
                 const theme = themesConfig[e.target.value];
-                lineColorInput.value = theme.line; // Auto đổi màu kẻ tone-sur-tone
+                lineColorInput.value = theme.line; 
                 updatePreview();
             });
 
@@ -521,56 +518,41 @@ Em hãy tự làm trước khi đối chiếu với đáp án nhé. Sự trung t
             
             inputText.value = sampleData;
 
-            // BỘ ĐỊNH DẠNG DÙNG CHUNG CHO CẢ WEB & WORD
             function applyRegexFormatting(textWithPlaceholders) {
                 let result = textWithPlaceholders;
                 const currentTheme = themesConfig[themeSelect.value];
 
-                // Đổi hoa thị (*) đầu dòng thành bullet (•) kèm màu theme
                 result = result.replace(/^(\s*)\*(\s+)/gim, `$1<span style="color: ${currentTheme.bullet}; font-weight: bold;">•</span>$2`);
-
-                // 1. Chuyển kí hiệu HR (---) thành đường gạch phân cách
                 result = result.replace(/^\s*---\s*$/gim, '<div style="border-bottom: 1pt solid #ccc; margin: 10pt 0;"></div>');
 
-                // 2. Căn giữa các mục "Phần A, B..." 
                 const phanRegex = /^(?:\s*[#•\-\*]\s*)*(?:\*\*)?\s*(Phần\b.*?)(?:\*\*)?\s*$/gim;
                 result = result.replace(phanRegex, `<div style="text-align: center; font-weight: bold; margin: 4pt 0; color: ${currentTheme.heading};">$1</div>`);
 
-                // 3. Auto bold Đề mục tự do (I., II., Đề bài...)
                 const sectionRegex = /^(?:\s*[#•\-\*]\s*)*(?:\*\*)?\s*([IVX]+\..*|Đề bài.*|Đáp án.*|Lời giải.*|Chapter.*|Chương.*|Dạng.*)(?:\*\*)?\s*$/gim;
                 result = result.replace(sectionRegex, `<strong style="color: ${currentTheme.heading};">$1</strong>`);
 
-                // 4. Nhận diện tiêu đề Markdown (Các dòng có dấu thăng ##) chưa bị gom ở trên
                 result = result.replace(/^(?:#{1,6})\s+(.*)$/gim, `<strong style="color: ${currentTheme.heading};">$1</strong>`);
-
-                // 5. In đậm cú pháp Markdown phổ biến (**chữ**)
                 result = result.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
 
-                // 6. In đậm tiền tố "Bài X:", "Câu Y:"
                 const questionRegex = /^(\s*[•\-\*]\s*)?(Bài\s+[\w\d]+|Câu\s+[\w\d]+|Question\s+[\w\d]+|Đáp số)([:\-\.\)]?)/gim;
                 result = result.replace(questionRegex, `<strong style="color: ${currentTheme.heading};">$1$2$3</strong>`);
 
-                // Dọn dẹp các thẻ strong bị thừa 
                 result = result.replace(/<strong>\s*<strong[^>]*>/g, '<strong>').replace(/<\/strong>\s*<\/strong>/g, '</strong>');
                 result = result.replace(/\n/g, '<br>');
 
                 return result;
             }
 
-            // TỰ ĐỘNG BỔ SUNG VÀ BẢO VỆ DẤU CÁCH VẬT LÝ CHO CÔNG THỨC TOÁN
             function applyMathAutoSpacing(text) {
-                // Bộ ký tự chứa toàn bộ chữ cái tiếng Việt, tiếng Anh và Số (Cả hoa và thường)
                 const charClass = 'a-zA-Z0-9áàảãạăắằẳẵặâấầẩẫậéèẻẽẹêếềểễệíìỉĩịóòỏõọôốồổỗộơớờởỡợúùủũụưứừửữựýỳỷỹỵđĐÁÀẢÃẠĂẮẰẲẴẶÂẤẦẨẪẬÉÈẺẼẸÊẾỀỂỄỆÍÌỈĨỊÓÒỎÕỌÔỐỒỔỖỘƠỚỜỞỠỢÚÙỦŨỤƯỨỪỬỮỰÝỲỶỸỴ';
                 
-                // Sử dụng \s* để gộp tất cả khoảng trắng (nếu có) và thay bằng ĐÚNG 1 KÝ TỰ &nbsp;
-                // &nbsp; là Non-breaking Space, ép MS Word KHÔNG được phép "nuốt" dấu cách khi render
+                // Dùng &nbsp; để ép khoảng trắng không ngắt, giúp MS Word không bị nuốt dấu cách
                 const regexBefore = new RegExp(`([${charClass}])\\s*(%%%MATH_\\d+%%%)`, 'g');
                 const regexAfter = new RegExp(`(%%%MATH_\\d+%%%)\\s*([${charClass}])`, 'g');
                 
                 return text.replace(regexBefore, '$1&nbsp;$2').replace(regexAfter, '$1&nbsp;$2');
             }
 
-            // Xử lý Text để Preview lên Web
             function formatTextForHtml(text) {
                 const mathBlocks = [];
                 let textWithPlaceholders = text.replace(/(\$\$[\s\S]*?\$\$|\$[\s\S]*?\$)/g, (match) => {
@@ -580,9 +562,7 @@ Em hãy tự làm trước khi đối chiếu với đáp án nhé. Sự trung t
 
                 textWithPlaceholders = textWithPlaceholders.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
                 
-                // Bơm dấu cách bảo vệ
                 textWithPlaceholders = applyMathAutoSpacing(textWithPlaceholders);
-                
                 textWithPlaceholders = applyRegexFormatting(textWithPlaceholders);
 
                 textWithPlaceholders = textWithPlaceholders.replace(/%%%MATH_(\d+)%%%/g, (match, i) => {
@@ -611,7 +591,6 @@ Em hãy tự làm trước khi đối chiếu với đáp án nhé. Sự trung t
                 }
             }
 
-            // Regex điều khiển việc ngắt block dòng kẻ
             const sectionBreakRegex = /^(?:\s*[#•\-\*]\s*)*(?:\*\*)?\s*(Bài\b|Câu\b|Question\b|Đáp án\b|Answer\b|Lời giải\b|I\.|II\.|III\.|IV\.|V\.|VI\.|Phần\b)/i;
             const postLineRegex = /^(?:\s*[#•\-\*]\s*)*(?:\*\*)?\s*(VN\b|Teacher's comment|Gợi ý|Đáp số\b)/i;
             const isQuestionRegex = /^(?:\s*[#•\-\*]\s*)*(?:\*\*)?\s*(Bài\b|Câu\b|Question\b)/i;
@@ -629,7 +608,6 @@ Em hãy tự làm trước khi đối chiếu với đáp án nhé. Sự trung t
                 const linesBgStyle = getLineBackgroundStyle(selectedStyle, spacing, color);
                 const typographyStyle = `font-family: ${fontFamilySelect.value}; font-size: ${fontSizeInput.value}pt; line-height: 1.15;`;
 
-                // Xóa dòng trắng
                 let rawText = inputText.value;
                 rawText = rawText.split('\n').filter(line => line.trim() !== '').join('\n');
 
@@ -651,7 +629,6 @@ Em hãy tự làm trước khi đối chiếu với đáp án nhé. Sự trung t
                         let pre = [], post = [];
                         contentArr.forEach(l => postLineRegex.test(l) ? post.push(l) : pre.push(l));
                         
-                        // Khung Tóm tắt kiến thức tô full màu nền theo Theme
                         const isSummaryBox = contentArr.some(l => /I\.\s*TÓM TẮT/i.test(l));
                         const currentTheme = themesConfig[themeSelect.value];
                         const boxStyle = isSummaryBox ? `background-color: ${currentTheme.boxBg}; border: 1px solid ${currentTheme.boxBorder}; border-left: 5px solid ${currentTheme.heading}; padding: 16px; border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); margin-bottom: 12px;` : '';
@@ -777,7 +754,7 @@ Em hãy tự làm trước khi đối chiếu với đáp án nhé. Sự trung t
 
                             textWithPlaceholders = textWithPlaceholders.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
                             
-                            // Bảo vệ khoảng trắng cho Word
+                            // GIẢI PHÁP CHỐNG MS WORD NUỐT KHOẢNG TRẮNG BẰNG &nbsp;
                             textWithPlaceholders = applyMathAutoSpacing(textWithPlaceholders);
                             
                             textWithPlaceholders = applyRegexFormatting(textWithPlaceholders);
@@ -828,16 +805,28 @@ Em hãy tự làm trước khi đối chiếu với đáp án nhé. Sự trung t
                                 let pre = [], post = [];
                                 contentArr.forEach(l => postLineRegex.test(l) ? post.push(l) : pre.push(l));
                                 
-                                // Khung Tóm tắt cho Word (Callout Box tô full nền theo Theme)
+                                // TÔ MÀU FULL BOX CHO FILE WORD (BẰNG TABLE CELL SHADING ĐỂ TRÁNH LỖI VỆT TRẮNG)
                                 const isSummaryBox = contentArr.some(l => /I\.\s*TÓM TẮT/i.test(l));
                                 const currentTheme = themesConfig[themeSelect.value];
-                                const boxStyle = isSummaryBox ? `background-color: ${currentTheme.boxBg}; border-top: 1pt solid ${currentTheme.boxBorder}; border-right: 1pt solid ${currentTheme.boxBorder}; border-bottom: 1pt solid ${currentTheme.boxBorder}; border-left: 4pt solid ${currentTheme.heading}; padding: 12pt; margin-bottom: 12pt;` : '';
+                                
+                                let res = "";
+                                if (isSummaryBox) {
+                                    res += `<table style="width: 100%; border-collapse: collapse; margin-bottom: ${spacing * 0.5}px; page-break-inside: avoid;">
+                                        <tr>
+                                            <td style="background-color: ${currentTheme.boxBg}; border-top: 1pt solid ${currentTheme.boxBorder}; border-right: 1pt solid ${currentTheme.boxBorder}; border-bottom: 1pt solid ${currentTheme.boxBorder}; border-left: 4pt solid ${currentTheme.heading}; padding: 12pt;">`;
+                                } else {
+                                    res += `<div style="margin-bottom: ${spacing * 0.5}px; page-break-inside: avoid;">`;
+                                }
 
-                                let res = `<div style="margin-bottom: ${spacing * 0.5}px; page-break-inside: avoid; ${boxStyle}">`;
                                 if (pre.length > 0) res += `<div style="margin-bottom: 2px;">${formatBlockForWord(pre.join('\n'))}</div>`;
                                 if (hasQ && !isAns) res += generateWordLines(linesCount);
                                 if (post.length > 0) res += `<div style="margin-top: 10px; font-style: italic; color: #4b5563;">${formatBlockForWord(post.join('\n'))}</div>`;
-                                res += `</div>`;
+                                
+                                if (isSummaryBox) {
+                                    res += `</td></tr></table>`;
+                                } else {
+                                    res += `</div>`;
+                                }
                                 return res;
                             }
 
